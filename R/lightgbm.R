@@ -173,15 +173,20 @@ add_boost_tree_lightgbm <- function() {
 #' @param min_gain_to_split A number for the minimum loss reduction required to make a
 #'  further partition on a leaf node of the tree.
 #' @param bagging_fraction Subsampling proportion of rows.
+#' @param categorical_features column indices of categorical features. When not specified (default) will automatically pick character and factor columns
 #' @param ... Other options to pass to `lightgbm.train`.
 #' @return A fitted `lightgbm.Model` object.
 #' @keywords internal
 #' @export
 train_lightgbm <- function(x, y, max_depth = 6, num_iterations = 100, learning_rate = 0.1,
-                           feature_fraction = 1, min_data_in_leaf = 1, min_gain_to_split = 0, bagging_fraction = 1, ...) {
+                           feature_fraction = 1, min_data_in_leaf = 1, min_gain_to_split = 0, bagging_fraction = 1, categorical_features = NULL, ...) {
 
   force(x)
   force(y)
+  # categorical features -------------------------
+  if(is.null(categorical_features)) {
+    categorical_features <- retrieve_categorical_columns(x)
+  }
 
   # feature_fraction ------------------------------
   if(!is.null(feature_fraction)) {
@@ -222,7 +227,8 @@ train_lightgbm <- function(x, y, max_depth = 6, num_iterations = 100, learning_r
     feature_fraction = feature_fraction,
     min_data_in_leaf = min_data_in_leaf,
     min_gain_to_split = min_gain_to_split,
-    bagging_fraction = bagging_fraction
+    bagging_fraction = bagging_fraction,
+    categorical_feature = categorical_features
   )
 
   # override or add some other args
@@ -235,7 +241,7 @@ train_lightgbm <- function(x, y, max_depth = 6, num_iterations = 100, learning_r
 
 
   # train ------------------------
-  d <- lightgbm::lgb.Dataset(data = x, label = y, feature_pre_filter = FALSE)
+  d <- lightgbm::lgb.Dataset(data = x, label = y, feature_pre_filter = FALSE,categorical_feature = categorical_features)
 
   main_args <- list(
     data = quote(d),
@@ -297,6 +303,9 @@ predict_lightgbm_regression_numeric <- function(object, new_data) {
 
 
 
-
+retrieve_categorical_columns <- function(dataset){
+    types <- sapply(dataset, class)
+    which(types %in% c("factor", "character"))
+}
 
 
